@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "command": "dotnet",
+    "options": {
+        "env": {
+            "ASPNETCORE_ENVIRONMENT": "Development"
+        }
+    },
+    "tasks": [
+        {
+            "label": "build",
+            "type": "process",
+            "args": [],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "watch",
+            "type": "process",
+            "args": [
+                "watch",
+                "run"
+            ],
+            "problemMatcher": "$msCompile"
+        }
+    ]
+}
