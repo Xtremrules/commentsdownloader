@@ -16,19 +16,25 @@ using Microsoft.Extensions.Logging;
 
 namespace CommentsDownloader.Services.HostedServices
 {
-    public class BackgroundEmailSender : BackgroundService, IMailService
+    public class BackgroundReviewWorker : BackgroundService
     {
-        private readonly ILogger<BackgroundEmailSender> _logger;
+        private readonly ILogger<BackgroundReviewWorker> _logger;
         private readonly SmtpClient _smtpClient;
         private readonly BufferBlock<Message> _messageQueue;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly Func<string, ICommentFetcher> _fetcherFactory;
 
-        public BackgroundEmailSender(ILogger<BackgroundEmailSender> logger, IConfiguration configuration, IServiceScopeFactory serviceScopeFactory)
+        public BackgroundReviewWorker(
+            ILogger<BackgroundReviewWorker> logger,
+            IConfiguration configuration,
+            IServiceScopeFactory serviceScopeFactory,
+            Func<string, ICommentFetcher> fetcherFactory)
         {
             _logger = logger;
             _smtpClient = CreateSmtpClient(configuration);
             _messageQueue = new BufferBlock<Message>();
             _serviceScopeFactory = serviceScopeFactory;
+            _fetcherFactory = fetcherFactory;
         }
 
         private SmtpClient CreateSmtpClient(IConfiguration configuration)
@@ -49,8 +55,8 @@ namespace CommentsDownloader.Services.HostedServices
 
         protected override async Task ExecuteAsync(CancellationToken token)
         {
-            _logger.LogInformation("Background Mail Sender started");
-            token.Register(() => _logger.LogDebug($"Shutting down Background Mail Sender."));
+            _logger.LogInformation("Background Review Fetcher started");
+            token.Register(() => _logger.LogDebug($"Shutting down Background Review Fetcher."));
 
             while (!token.IsCancellationRequested)
             {
@@ -60,7 +66,7 @@ namespace CommentsDownloader.Services.HostedServices
                     //Let's wait for a message to appear in the queue
                     //If the token gets canceled, then we'll stop waiting
                     //since an OperationCanceledException will be thrown
-                    _logger.LogInformation("waiting for new messages");
+                    _logger.LogInformation("waiting for new requests");
                     using(var scope = _serviceScopeFactory.CreateScope())
                     {
                         var dbContext = scope.ServiceProvider.GetRequiredService<CommentsDownloaderDbContext>();
@@ -70,70 +76,43 @@ namespace CommentsDownloader.Services.HostedServices
                 catch (OperationCanceledException)
                 {
                     //We need to terminate the delivery, so we'll just break the while loop
-                    _logger.LogInformation("background mail sender is down.");
+                    _logger.LogInformation("background review fetcher is down.");
                     break;
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"failed to send email, {ex.Message}");
+                    _logger.LogWarning($"failed to fetch reviews, {ex.Message}");
                 }
                 await Task.Delay(10000, token);
             }
-            _logger.LogInformation("Background Mail Sender stopped");
+            _logger.LogInformation("Background Review fetcher stopped");
         }
-
-        private async Task SendTestMail(Message messageContent)
-        {
-            var message = new MailMessage(
-                from: "ade@ade.com",
-                to: "mubarakadeimam@icloud.com"
-            )
-            {
-                Subject = messageContent.Subject,
-                Body = messageContent.Body,
-                IsBodyHtml = true    
-            };
-
-            await _smtpClient.SendMailAsync(message);
-        }
-
-        public void SendMail(Message message)
-        {
-            bool posted = _messageQueue.Post(message);
-            if(!posted)
-            {
-                throw new InvalidOperationException("Mail server no longer accepting mails");
-            }
-        }
-
+        
         private async Task FetchAndSendRequest(CommentsDownloaderDbContext context)
         {
             var request = await context.CommentRequests.AsQueryable().FirstOrDefaultAsync(cr => !cr.CommentsFetched);
             if(request != null)
             {
-                var commentData = FetchData(request.RequestUrl);
-                var message = new Message
+                var host = new Uri(request.RequestUrl)?.Host;
+                switch(host)
                 {
-                    Body = request.RequestUrl,
-                    Subject = request.Email
-                };
-                await SendTestMail(message);
+                    case AppConstants.YoutubeHost:
+                        _logger.LogInformation("Hello Youtube");
+                        await _fetcherFactory(AppConstants.Youtube).FetchComments(request);
+
+                        break;
+                    case AppConstants.AmazonHost:
+                        _logger.LogInformation("Hello Amazon");
+                        await _fetcherFactory(AppConstants.Amazon).FetchComments(request);
+                        break;
+                    default:
+                        throw new NotImplementedException(message: "We haven't implemented that yet");
+                }
                 request.CommentsFetched = true;
                 context.Attach(request);
                 context.Entry(request).State = EntityState.Modified;
                 await context.SaveChangesAsync();
-                _logger.LogDebug($"just sent another mail: {message.Subject}, {context.CommentRequests.Count()}");
             }
-        }
-
-        private async Task FetchData(string requestUrl)
-        {
-            var response = new HttpResponseMessage();
-            using(var httpClient = new HttpClient())
-            {
-                var stream = await httpClient.GetAsync(requestUrl);
-                //response = stream.();
-            };
         }
     }
 }

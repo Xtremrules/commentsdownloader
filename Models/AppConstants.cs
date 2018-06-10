@@ -4,5 +4,7 @@ namespace CommentsDownloader.Models
     {
         public const string Youtube = "youtube";
         public const string Amazon = "amazon";
+        public const string YoutubeHost = "www.youtube.com";
+        public const string AmazonHost = "www.amazon.com";
     }
 }

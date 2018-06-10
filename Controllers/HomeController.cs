@@ -33,7 +33,7 @@ namespace CommentsDownloader.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> SendMail([FromServices] IMailService mailService, CommentsRequestCreate request)
+        public async Task<IActionResult> SendMail(CommentsRequestCreate request)
         {
             var newRequest = request.ToModel();
             _repository.Create(newRequest);

@@ -33,9 +33,9 @@ namespace CommentsDownloader
             
             services.AddDbContext<CommentsDownloaderDbContext>(options => options.UseSqlite("Data Source=CommentsDownloader.db"));
             
-            services.AddSingleton<BackgroundEmailSender>();
-            services.AddSingleton<IHostedService>(serviceProvider => serviceProvider.GetService<BackgroundEmailSender>());
-            services.AddSingleton<IMailService>(serviceProvider => serviceProvider.GetService<BackgroundEmailSender>());
+            services.AddSingleton<BackgroundReviewWorker>();
+            services.AddSingleton<IHostedService>(serviceProvider => serviceProvider.GetService<BackgroundReviewWorker>());
+            //services.AddSingleton<IMailService>(serviceProvider => serviceProvider.GetService<BackgroundReviewWorker>());
 
             services.AddSingleton<YoutubeFetcher>();
             services.AddSingleton<AmazonFetcher>();
