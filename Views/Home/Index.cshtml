@@ -1,16 +1,16 @@
-﻿@model CommentsDownloader.Models.Message
+﻿@model CommentsRequestCreate
 <h2>Contact us</h2>
 <p>Fill in the form to get in touch with us.</p>
 <form asp-controller="Home" asp-action="SendMail" method="post">
   <div class="form-group">
-    <label asp-for="Subject"></label>
-    <input type="text" asp-for="Subject" class="form-control" />
-    <span asp-validation-for="Subject" />
+    <label asp-for=RequestUrl></label>
+    <input type="text" asp-for=RequestUrl class="form-control" />
+    <span asp-validation-for=RequestUrl />
   </div>
   <div class="form-group">
-    <label asp-for="Body"></label>
-    <input type="text" asp-for="Body" class="form-control" />
-    <span asp-validation-for="Body" />
+    <label asp-for="Email"></label>
+    <input type="email" asp-for="Email" class="form-control" />
+    <span asp-validation-for="Email" />
   </div>
   <div class="form-group">
     <div asp-validation-summary="All"></div>

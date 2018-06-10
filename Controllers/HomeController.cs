@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using CommentsDownloader.Models;
+using CommentsDownloader.ViewModels;
 using CommentsDownloader.Services;
 using CommentsDownloader.DTO.Entities;
 using CommentsDownloader.Data.Interfaces;
@@ -32,16 +32,28 @@ namespace CommentsDownloader.Controllers
             return View();
         }
 
+        [HttpPost]
         public async Task<IActionResult> SendMail([FromServices] IMailService mailService, CommentsRequestCreate request)
         {
-            _repository.Create(request.ToModel());
+            var newRequest = request.ToModel();
+            _repository.Create(newRequest);
             await _repository.SaveAsync();
-            return RedirectToAction(nameof(ThankYou));
+            return RedirectToAction(nameof(ThankYou), new {id = newRequest.Id.ToString()});
         }
 
-        public IActionResult ThankYou()
+        public async Task<IActionResult> ThankYou(string id)
         {
-            return View();
+            var request = await _repository.GetByIdAsync(new Guid(id));
+            if (request != null)
+            {
+                return View(request.ToViewModel());
+            }
+            return RedirectToAction(nameof(Index));
+        }
+
+        public IActionResult Status(string id)
+        {
+            return RedirectToAction(nameof(ThankYou), new {id = id} );
         }
 
         public IActionResult Privacy()

@@ -19,6 +19,7 @@ namespace CommentsDownloader.Mappings
         {
             return new CommentsRequestViewModel
             {
+                Id = model.Id,
                 RequestUrl = model.RequestUrl,
                 Email = model.Email,
                 MailSent = model.MailSent,

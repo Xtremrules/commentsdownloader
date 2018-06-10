@@ -1,6 +1,6 @@
 using System;
 
-namespace CommentsDownloader.Models
+namespace CommentsDownloader.ViewModels
 {
     public class ErrorViewModel
     {
