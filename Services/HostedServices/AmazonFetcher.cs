@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using CommentsDownloader.DTO.Entities;
+using CommentsDownloader.Extensions;
 using Microsoft.Extensions.Logging;
 
 namespace CommentsDownloader.Services.HostedServices
@@ -18,6 +19,7 @@ namespace CommentsDownloader.Services.HostedServices
         public async Task FetchComments(CommentsRequest request)
         {
             var response = await _httpClient.GetAsync(request.RequestUrl);
+            await response.Content.ReadAsFileAsync($@"C:\\TempFile\\{request.Id}.txt", true);
             _logger.LogInformation($"fetching successfull for {request.RequestUrl}, {response.StatusCode}");
             ;
         }
