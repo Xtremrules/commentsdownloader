@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using CommentsDownloader.Data;
+using CommentsDownloader.Data.Interfaces;
 
 namespace CommentsDownloader
 {
@@ -51,6 +52,9 @@ namespace CommentsDownloader
                         throw new KeyNotFoundException(); // or maybe return null, up to you
                 }
             });
+
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

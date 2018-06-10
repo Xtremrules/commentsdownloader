@@ -6,11 +6,20 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using CommentsDownloader.Models;
 using CommentsDownloader.Services;
+using CommentsDownloader.DTO.Entities;
+using CommentsDownloader.Data.Interfaces;
+using CommentsDownloader.Mappings;
 
 namespace CommentsDownloader.Controllers
 {
     public class HomeController : Controller
     {
+        private readonly IRepository<CommentsRequest> _repository;
+
+        public HomeController(IRepository<CommentsRequest> repository)
+        {
+            _repository = repository;
+        }
         public IActionResult Index()
         {
             return View();
@@ -23,9 +32,10 @@ namespace CommentsDownloader.Controllers
             return View();
         }
 
-        public IActionResult SendMail([FromServices] IMailService mailService, Message message)
+        public async Task<IActionResult> SendMail([FromServices] IMailService mailService, CommentsRequestCreate request)
         {
-            mailService.SendMail(message);
+            _repository.Create(request.ToModel());
+            await _repository.SaveAsync();
             return RedirectToAction(nameof(ThankYou));
         }
 

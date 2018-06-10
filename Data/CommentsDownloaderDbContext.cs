@@ -1,4 +1,5 @@
 
+using CommentsDownloader.DTO.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace CommentsDownloader.Data
@@ -11,6 +12,7 @@ namespace CommentsDownloader.Data
         }
 
         public CommentsDownloaderDbContext() { }
-        // public DbSet<Post> Posts { get; set; }
+
+        public DbSet<CommentsRequest> CommentRequests { get; set; }
     }
 }
