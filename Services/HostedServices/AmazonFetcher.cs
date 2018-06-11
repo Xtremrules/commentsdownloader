@@ -21,7 +21,6 @@ namespace CommentsDownloader.Services.HostedServices
             var response = await _httpClient.GetAsync(request.RequestUrl);
             await response.Content.ReadAsFileAsync($@"C:\\TempFile\\{request.Id}.txt", true);
             _logger.LogInformation($"fetching successfull for {request.RequestUrl}, {response.StatusCode}");
-            ;
         }
     }
 }

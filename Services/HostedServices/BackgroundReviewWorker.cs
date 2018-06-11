@@ -99,14 +99,14 @@ namespace CommentsDownloader.Services.HostedServices
                     case AppConstants.YoutubeHost:
                         _logger.LogInformation("Hello Youtube");
                         await _fetcherFactory(AppConstants.Youtube).FetchComments(request);
-
                         break;
                     case AppConstants.AmazonHost:
                         _logger.LogInformation("Hello Amazon");
                         await _fetcherFactory(AppConstants.Amazon).FetchComments(request);
                         break;
                     default:
-                        throw new NotImplementedException(message: "We haven't implemented that yet");
+                        _logger.LogInformation("We haven't implemented that yet");
+                        break;
                 }
                 request.CommentsFetched = true;
                 context.Attach(request);
