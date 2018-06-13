@@ -5,6 +5,6 @@ namespace CommentsDownloader.Services
 {
     public interface ICommentFetcher
     {
-        Task FetchComments(CommentsRequest request);
+        Task<string> FetchComments(CommentsRequest request);
     }
 }

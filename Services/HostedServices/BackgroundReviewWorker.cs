@@ -19,8 +19,6 @@ namespace CommentsDownloader.Services.HostedServices
     public class BackgroundReviewWorker : BackgroundService
     {
         private readonly ILogger<BackgroundReviewWorker> _logger;
-        private readonly SmtpClient _smtpClient;
-        private readonly BufferBlock<Message> _messageQueue;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly Func<string, ICommentFetcher> _fetcherFactory;
 
@@ -31,8 +29,6 @@ namespace CommentsDownloader.Services.HostedServices
             Func<string, ICommentFetcher> fetcherFactory)
         {
             _logger = logger;
-            _smtpClient = CreateSmtpClient(configuration);
-            _messageQueue = new BufferBlock<Message>();
             _serviceScopeFactory = serviceScopeFactory;
             _fetcherFactory = fetcherFactory;
         }
@@ -70,7 +66,7 @@ namespace CommentsDownloader.Services.HostedServices
                     using(var scope = _serviceScopeFactory.CreateScope())
                     {
                         var dbContext = scope.ServiceProvider.GetRequiredService<CommentsDownloaderDbContext>();
-                        await FetchAndSendRequest(dbContext);
+                        await FetchAndSendRequests(dbContext);
                     }
                 }
                 catch (OperationCanceledException)
@@ -88,30 +84,36 @@ namespace CommentsDownloader.Services.HostedServices
             _logger.LogInformation("Background Review fetcher stopped");
         }
         
-        private async Task FetchAndSendRequest(CommentsDownloaderDbContext context)
+        private async Task FetchAndSendRequests(CommentsDownloaderDbContext context)
         {
-            var request = await context.CommentRequests.AsQueryable().FirstOrDefaultAsync(cr => !cr.CommentsFetched);
-            if(request != null)
-            {
-                var host = new Uri(request.RequestUrl)?.Host;
-                switch(host)
+            var requests = context.CommentRequests.Where(cr => !cr.CommentsFetched).ToList();
+            if(requests.Any()){
+                foreach(var request in requests)
                 {
-                    case AppConstants.YoutubeHost:
-                        _logger.LogInformation("Hello Youtube");
-                        await _fetcherFactory(AppConstants.Youtube).FetchComments(request);
-                        break;
-                    case AppConstants.AmazonHost:
-                        _logger.LogInformation("Hello Amazon");
-                        await _fetcherFactory(AppConstants.Amazon).FetchComments(request);
-                        break;
-                    default:
-                        _logger.LogInformation("We haven't implemented that yet");
-                        break;
+                    var host = new Uri(request.RequestUrl)?.Host;
+                    string fileName = "";
+                    switch(host)
+                    {
+                        case AppConstants.YoutubeHost:
+                            _logger.LogInformation("Hello Youtube");
+                            fileName = await _fetcherFactory(AppConstants.Youtube).FetchComments(request);
+                            break;
+                        case AppConstants.AmazonHost:
+                            _logger.LogInformation("Hello Amazon");
+                            fileName = await _fetcherFactory(AppConstants.Amazon).FetchComments(request);
+                            break;
+                        default:
+                            _logger.LogInformation("We haven't implemented that yet");
+                            break;
+                    }
+                    request.CommentsFetched = true;
+                    request.ModifiedBy = "System";
+                    request.TempFileDirectory = fileName;
+                    request.ModifiedDate = DateTime.UtcNow;
+                    context.Attach(request);
+                    context.Entry(request).State = EntityState.Modified;
+                    await context.SaveChangesAsync();
                 }
-                request.CommentsFetched = true;
-                context.Attach(request);
-                context.Entry(request).State = EntityState.Modified;
-                await context.SaveChangesAsync();
             }
         }
     }
