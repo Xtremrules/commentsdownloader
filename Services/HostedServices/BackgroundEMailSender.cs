@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
 using CommentsDownloader.Data;
@@ -67,25 +68,34 @@ namespace CommentsDownloader.Services.HostedServices {
             _logger.LogInformation ("Background Email Sender stopped");
         }
 
-        private async Task FetchAndSendEmail(CommentsDownloaderDbContext context) {
-            var messages = context.CommentRequests.Where(
-                cr => cr.CommentsFetched && !cr.MailSent).ToList();
-            if (messages.Any()) {
-                foreach(var message in messages) {
+        private async Task FetchAndSendEmail (CommentsDownloaderDbContext context) {
+            var messages = context.CommentRequests.Where (
+                cr => cr.CommentsFetched && !cr.MailSent).ToList ();
+            if (messages.Any ()) {
+                foreach (var message in messages) {
                     _logger.LogInformation ($"sending mail for {message.TempFileDirectory}");
-                    message.MailSent = await SendMail(message);
+                    message.MailSent = await SendMail (message);
                     message.ModifiedBy = "System";
                     message.ModifiedDate = DateTime.UtcNow;
-                    context.Attach(message);
-                    context.Entry(message).State = EntityState.Modified;
-                    await context.SaveChangesAsync();
+                    context.Attach (message);
+                    context.Entry (message).State = EntityState.Modified;
+                    await context.SaveChangesAsync ();
                 }
             }
         }
 
-        private async Task<bool> SendMail(CommentsRequest request)
-        {
-            return await Task.FromResult(true);
-        } 
+        private async Task<bool> SendMail (CommentsRequest request) {
+            var fileName = $@"C:\\TempFile\\{request.TempFileDirectory}";
+            Attachment attachment = new Attachment (fileName, MediaTypeNames.Application.Octet);
+            MailMessage message = new MailMessage (
+                "mubarakadeimam@gmail.com",
+                request.Email,
+                "Your Comment Request is Ready",
+                "Find attached your comments as requested");
+            // Add the file attachment to this e-mail message.
+            message.Attachments.Add (attachment);
+            await _smtpClient.SendMailAsync(message);
+            return true;
+        }
     }
 }
