@@ -63,7 +63,7 @@ namespace CommentsDownloader.Services.HostedServices {
         public bool SaveToFile (string fileName, List<RefinedYoutubeComment> comments) {
             var writer = new CsvWriter ();
             var fullFilePath = Path.Combine(_path, fileName);
-            return writer.Write(comments, fileName, true);
+            return writer.Write(comments, fullFilePath, true);
         }
 
         public string GetVideoId (string url) {
