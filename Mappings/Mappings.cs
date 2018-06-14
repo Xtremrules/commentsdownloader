@@ -23,7 +23,8 @@ namespace CommentsDownloader.Mappings
                 RequestUrl = model.RequestUrl,
                 Email = model.Email,
                 MailSent = model.MailSent,
-                CommentsFetched = model.CommentsFetched
+                CommentsFetched = model.CommentsFetched,
+                FileName = model.TempFileDirectory
             };
         }
     }

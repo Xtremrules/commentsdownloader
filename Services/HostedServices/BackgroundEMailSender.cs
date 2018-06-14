@@ -19,6 +19,7 @@ namespace CommentsDownloader.Services.HostedServices {
     public class BackgroundEMailSender : BackgroundService {
         private readonly ILogger<BackgroundEMailSender> _logger;
         private readonly SmtpClient _smtpClient;
+        private readonly string _AdminContact;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public BackgroundEMailSender (
@@ -27,6 +28,7 @@ namespace CommentsDownloader.Services.HostedServices {
             IServiceScopeFactory serviceScopeFactory) {
             _logger = logger;
             _smtpClient = CreateSmtpClient (configuration);
+            _AdminContact = configuration["AdminContact"];
             _serviceScopeFactory = serviceScopeFactory;
         }
 
@@ -98,7 +100,7 @@ namespace CommentsDownloader.Services.HostedServices {
             }
 
             MailMessage message = new MailMessage (
-                "mubarakadeimam@gmail.com",
+                _AdminContact,
                 request.Email,
                 "Your Comment Request is Ready",
                 "Find attached your comments as requested");

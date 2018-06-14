@@ -9,5 +9,6 @@ namespace CommentsDownloader.ViewModels
         public string Email { get; set; }
         public bool CommentsFetched { get; set; }
         public bool MailSent { get; set; }
+        public string FileName { get; set; }
     }
 }

@@ -1,9 +1,20 @@
 @model CommentsRequestViewModel
 <h1>Thank you!</h1>
-<p>We reiceved your message and we're going to get in touch with you soon!</p>
+<p>We reiceved your request and we're going to get in touch with you soon!</p>
 <p>Request Id: @Model.Id</p>
 <p>Request Url: @Model.RequestUrl</p>
 <p>Delivery Email: @Model.Email</p>
 <p>Comments Fetched: @(Model.CommentsFetched ? "Yes" : "No")</p>
 <p>Mail Sent: @(Model.MailSent ? "Yes" : "No")</p>
 <a href="/" class="btn btn-primary">Go back to the Homepage</a>
+@if(Model.MailSent) {
+    <a asp-action="Download" asp-route-filename="@Model.FileName" class="btn btn-success">Download</a>
+}
+<br>
+<p>Keep waiting till the Download button appears or wait for the file in your email.</p>
+
+@section scripts{
+    <script>
+        setTimeout(_ => location.reload(), 30000);
+    </script>
+}

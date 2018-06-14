@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CommentsDownloader.Data.Interfaces;
 using CommentsDownloader.DTO.Entities;
 using CommentsDownloader.Mappings;
+using CommentsDownloader.Models;
 using CommentsDownloader.Services;
 using CommentsDownloader.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -52,15 +53,14 @@ namespace CommentsDownloader.Controllers {
             if (filename == null)
                 return Content ("filename does not exist, maybe it has expired");
 
-            var path = Path.Combine (
-                Directory.GetCurrentDirectory (), filename);
+            var path = Path.Combine (AppConstants.TempFileDirectory, filename);
 
             var memory = new MemoryStream ();
             using (var stream = new FileStream (path, FileMode.Open)) {
                 await stream.CopyToAsync (memory);
             }
             memory.Position = 0;
-            return File (memory, GetContentType (path), Path.GetFileName (path));
+            return File (memory, GetContentType (path), "request.csv");
         }
 
         public IActionResult Privacy () {
