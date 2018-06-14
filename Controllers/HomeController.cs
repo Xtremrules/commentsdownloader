@@ -11,13 +11,16 @@ using CommentsDownloader.Models;
 using CommentsDownloader.Services;
 using CommentsDownloader.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace CommentsDownloader.Controllers {
     public class HomeController : Controller {
         private readonly IRepository<CommentsRequest> _repository;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController (IRepository<CommentsRequest> repository) {
+        public HomeController (IRepository<CommentsRequest> repository, ILogger<HomeController> logger) {
             _repository = repository;
+            _logger = logger;
         }
         public IActionResult Index () {
             return View ();
@@ -53,14 +56,19 @@ namespace CommentsDownloader.Controllers {
             if (filename == null)
                 return Content ("filename does not exist, maybe it has expired");
 
-            var path = Path.Combine (AppConstants.TempFileDirectory, filename);
+            try {
+                var path = Path.Combine (AppConstants.TempFileDirectory, filename);
 
-            var memory = new MemoryStream ();
-            using (var stream = new FileStream (path, FileMode.Open)) {
-                await stream.CopyToAsync (memory);
+                var memory = new MemoryStream ();
+                using (var stream = new FileStream (path, FileMode.Open)) {
+                    await stream.CopyToAsync (memory);
+                }
+                memory.Position = 0;
+                return File (memory, GetContentType (path), "request.csv");
+            } catch {
+                _logger.LogInformation ("Something happened, file is still in use by a previous process.");
             }
-            memory.Position = 0;
-            return File (memory, GetContentType (path), "request.csv");
+            return RedirectToAction(nameof (ThankYou), new { id = filename.Split('.')[0] });
         }
 
         public IActionResult Privacy () {
