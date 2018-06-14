@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
@@ -7,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommentsDownloader.Data;
 using CommentsDownloader.DTO.Entities;
+using CommentsDownloader.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,16 +87,28 @@ namespace CommentsDownloader.Services.HostedServices {
         }
 
         private async Task<bool> SendMail (CommentsRequest request) {
-            var fileName = $@"C:\\TempFile\\{request.TempFileDirectory}";
-            Attachment attachment = new Attachment (fileName, MediaTypeNames.Application.Octet);
+            string fileName = "";
+            Attachment attachment = (Attachment) null;
+            if (request.TempFileDirectory != null) {
+                fileName = Path.Combine (AppConstants.TempFileDirectory, request.TempFileDirectory);
+                if (File.Exists (fileName)) {
+                    attachment = new Attachment (fileName, MediaTypeNames.Application.Octet);
+                    attachment.Name = "request.csv";
+                }
+            }
+
             MailMessage message = new MailMessage (
                 "mubarakadeimam@gmail.com",
                 request.Email,
                 "Your Comment Request is Ready",
                 "Find attached your comments as requested");
             // Add the file attachment to this e-mail message.
-            message.Attachments.Add (attachment);
-            await _smtpClient.SendMailAsync(message);
+            if (attachment != null) {
+                message.Attachments.Add (attachment);
+            } else {
+                message.Body = "Sorry, the website you submitted is not yet supported.";
+            }
+            await _smtpClient.SendMailAsync (message);
             return true;
         }
     }
