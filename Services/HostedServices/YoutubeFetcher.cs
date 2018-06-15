@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CommentsDownloader.DTO.Entities;
 using CommentsDownloader.Extensions;
+using CommentsDownloader.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,7 @@ namespace CommentsDownloader.Services.HostedServices {
 
         public YoutubeFetcher (ILogger<YoutubeFetcher> logger, IConfiguration config) : base (logger, config) {
             var apiKey = _config["Youtube:ApiKey"];
-            _endpoint = $"https://www.googleapis.com/youtube/v3/commentThreads?key={apiKey}";
+            _endpoint = $"https://www.googleapis.com/youtube/v3/commentThreads?key={apiKey}&part=snippet&maxResults=100";
         }
 
         public override async Task<string> FetchComments (CommentsRequest request) {
@@ -32,7 +33,7 @@ namespace CommentsDownloader.Services.HostedServices {
             var currentResponse = new YouTubeCommentSet ();
             bool hasMore = false;
             string nextPageToken = "";
-            var refinedComments = new List<RefinedYoutubeComment> ();
+            var refinedComments = new List<RefinedComment> ();
             #endregion
 
             do {
@@ -41,29 +42,31 @@ namespace CommentsDownloader.Services.HostedServices {
                     response = await _httpClient.GetAsync (newQuery);
                 }
                 currentResponse = await response.Content.ReadAsAsync<YouTubeCommentSet> ();
-                var snippets = currentResponse.Items.Select (c => c.Snippet)
-                    .Select (d => d.TopLevelComment)
-                    .Select (e => new RefinedYoutubeComment {
-                        Username = e.Snippet.AuthorDisplayName,
-                            Date = e.Snippet.PublishedAt,
-                            Rating = e.Snippet.ViewerRating,
-                            Comment = e.Snippet.TextOriginal,
-                            Link = GetDirectCommentLink (videoId, e.Id)
-                    });
+                var snippets = currentResponse.Items.Select (e => GetRefinedComment(e, videoId));
                 refinedComments.AddRange (snippets);
                 nextPageToken = currentResponse.NextPageToken;
-                hasMore = currentResponse.PageInfo.TotalResults == 100 && !string.IsNullOrEmpty (nextPageToken);
+                hasMore = !string.IsNullOrEmpty (nextPageToken);
             } while (hasMore);
 
             var fileSaved = SaveToFile (fileName, refinedComments);
             _logger.LogInformation ($"fetching successfull for {request.RequestUrl}, {response.StatusCode}");
-            return fileSaved ? fileName : "" ;
+            return fileSaved ? fileName : "";
         }
 
-        public bool SaveToFile (string fileName, List<RefinedYoutubeComment> comments) {
+        private RefinedComment GetRefinedComment (Comment comment, string videoId) {
+            return new RefinedComment {
+                Username = comment.Snippet.TopLevelComment.Snippet.AuthorDisplayName,
+                Date = comment.Snippet.TopLevelComment.Snippet.PublishedAt,
+                Rating = comment.Snippet.TopLevelComment.Snippet.ViewerRating,
+                Comment = comment.Snippet.TopLevelComment.Snippet.TextOriginal,
+                Link = GetDirectCommentLink (videoId, comment.Snippet.TopLevelComment.Id)
+            };
+        }
+
+        public bool SaveToFile (string fileName, List<RefinedComment> comments) {
             var writer = new CsvWriter ();
-            var fullFilePath = Path.Combine(_path, fileName);
-            return writer.Write(comments, fullFilePath, true);
+            var fullFilePath = Path.Combine (_path, fileName);
+            return writer.Write (comments, fullFilePath, true);
         }
 
         public string GetVideoId (string url) {
@@ -77,7 +80,7 @@ namespace CommentsDownloader.Services.HostedServices {
         }
 
         public string BuildQuery (string videoId) {
-            return $"{_endpoint}&videoId={videoId}&part=snippet&maxResults=100";
+            return $"{_endpoint}&videoId={videoId}";
         }
 
         public string AddNextPageToken (string url, string nextPageToken) {
@@ -115,14 +118,6 @@ namespace CommentsDownloader.Services.HostedServices {
             public DateTime PublishedAt { get; set; }
             public string ViewerRating { get; set; }
             public string TextOriginal { get; set; }
-        }
-
-        public class RefinedYoutubeComment {
-            public string Username { get; set; }
-            public DateTime Date { get; set; }
-            public string Rating { get; set; }
-            public string Comment { get; set; }
-            public string Link { get; set; }
         }
     }
 }
